@@ -16,7 +16,8 @@ def get_openai_client() -> OpenAI | None:
     try:
         return OpenAI(
             base_url=endpoint,
-            api_key=api_key
+            api_key=api_key,
+            timeout=5.0
         )
     except Exception as e:
         print(f"[OpenAIClient] Initialization error: {e}")
@@ -54,13 +55,18 @@ async def run_agent_with_responses_api(
         if hasattr(response, "output_text") and response.output_text:
             output_str = response.output_text
         elif hasattr(response, "output") and response.output:
-            item = response.output[0]
-            if hasattr(item, "content"):
-                output_str = str(item.content)
-            elif hasattr(item, "text"):
-                output_str = str(item.text)
-            else:
-                output_str = str(item)
+            for item in response.output:
+                if hasattr(item, "content") and item.content:
+                    if isinstance(item.content, list):
+                        output_str = "".join(str(c.text if hasattr(c, "text") else c) for c in item.content)
+                    else:
+                        output_str = str(item.content)
+                    break
+                elif hasattr(item, "text") and item.text:
+                    output_str = str(item.text)
+                    break
+            if not output_str:
+                output_str = str(response.output[-1])
 
         if not output_str and hasattr(response, "text"):
             output_str = str(response.text)

@@ -80,9 +80,10 @@ ScholarPanel AI/
 
 Copy `backend/.env.example` to `backend/.env`:
 ```env
-# Azure AI Foundry Configuration
-FOUNDRY_PROJECT_ENDPOINT=https://your-resource.services.ai.azure.com/api/projects/your-project-id
-FOUNDRY_MODEL_DEPLOYMENT=gpt-4o
+# OpenAI Client with Azure AI Services Endpoint Configuration
+OPENAI_BASE_URL=https://cse476-resource.services.ai.azure.com/openai/v1
+OPENAI_API_KEY=<your-api-key>
+MODEL_DEPLOYMENT=gpt-5-mini
 ```
 *(If `FOUNDRY_PROJECT_ENDPOINT` is left blank, the system automatically runs in local deterministic simulation mode, enabling 100% offline localhost testing of the entire multi-agent pipeline immediately).*
 
