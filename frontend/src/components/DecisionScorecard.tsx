@@ -2,242 +2,170 @@
 
 import React, { useState } from "react";
 import { EvaluationResponse } from "../lib/api";
-import { 
-  Award, 
-  Clock, 
-  XCircle, 
-  CheckCircle2, 
-  FileCheck, 
-  Download, 
-  ExternalLink, 
-  ShieldCheck, 
-  AlertTriangle,
-  Info,
-  ChevronDown,
-  ChevronUp
-} from "lucide-react";
+import { Download, ChevronDown, ChevronUp } from "lucide-react";
 
 interface DecisionScorecardProps {
   evaluation: EvaluationResponse;
 }
 
 export function DecisionScorecard({ evaluation }: DecisionScorecardProps) {
-  const [selectedCitation, setSelectedCitation] = useState<string | null>(null);
-  const [showGatekeeperDetails, setShowGatekeeperDetails] = useState(true);
+  const [expandedRule, setExpandedRule] = useState<string | null>(null);
+  const [showEligibility, setShowEligibility] = useState(true);
 
-  const { decision, eligibility, merit, need, breakdown, applicant, total_duration_ms } = evaluation;
+  const { decision, eligibility, breakdown, applicant, total_duration_ms } = evaluation;
 
-  // Determine styling based on decision
-  let badgeTheme = {
-    bg: "bg-emerald-950/60 border-emerald-600/60 text-emerald-200",
-    badge: "bg-emerald-600 text-white",
-    text: "text-emerald-400",
-    glow: "shadow-emerald-950/50",
-    title: "SCHOLARSHIP AWARD CONFIRMED",
-    icon: Award,
-  };
+  const verdictStyle =
+    decision.decision === "AWARD"
+      ? "text-emerald-800 bg-emerald-50 border-emerald-200"
+      : decision.decision === "WAITLIST"
+      ? "text-amber-800 bg-amber-50 border-amber-200"
+      : "text-rose-800 bg-rose-50 border-rose-200";
 
-  if (decision.decision === "WAITLIST") {
-    badgeTheme = {
-      bg: "bg-amber-950/60 border-amber-600/60 text-amber-200",
-      badge: "bg-amber-600 text-white",
-      text: "text-amber-400",
-      glow: "shadow-amber-950/50",
-      title: "PLACED ON COMPETITIVE WAITLIST",
-      icon: Clock,
-    };
-  } else if (decision.decision === "REJECT") {
-    badgeTheme = {
-      bg: "bg-rose-950/60 border-rose-600/60 text-rose-200",
-      badge: "bg-rose-600 text-white",
-      text: "text-rose-400",
-      glow: "shadow-rose-950/50",
-      title: eligibility.is_eligible ? "APPLICATION REJECTED (BELOW THRESHOLD)" : "DISQUALIFIED AT ELIGIBILITY GATE",
-      icon: XCircle,
-    };
-  }
-
-  const DecisionIcon = badgeTheme.icon;
-
-  const handleExportJSON = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(evaluation, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `evaluation_${applicant.applicant_id}_audit.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
+  const handleExport = () => {
+    const uri =
+      "data:text/json;charset=utf-8," +
+      encodeURIComponent(JSON.stringify(evaluation, null, 2));
+    const link = document.createElement("a");
+    link.href = uri;
+    link.download = `audit_${applicant.applicant_id}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col space-y-5 font-sans">
-      {/* Top Banner Decision Card */}
-      <div className={`p-5 rounded-xl border ${badgeTheme.bg} shadow-lg ${badgeTheme.glow} transition-all`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-lg ${badgeTheme.badge}`}>
-              <DecisionIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className={`text-xl font-extrabold tracking-tight ${badgeTheme.text}`}>
-                  {decision.decision}
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded font-mono font-bold bg-slate-900/80 border border-slate-700 text-slate-300">
-                  {applicant.applicant_id} • {applicant.full_name}
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 font-medium mt-0.5">
-                {badgeTheme.title}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 sm:border-l sm:border-slate-800 sm:pl-4">
-            <div className="text-right">
-              <span className="text-[11px] uppercase tracking-wider text-slate-400 block font-semibold">
-                Weighted Total Score
+    <section className="bg-white border border-slate-200 rounded-lg text-slate-900 overflow-hidden">
+      <div className="p-6 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span
+                className={`px-2.5 py-0.5 rounded border font-mono text-xs font-bold tracking-wide ${verdictStyle}`}
+              >
+                {decision.decision}
               </span>
-              <span className="text-2xl font-black font-mono text-white">
-                {eligibility.is_eligible ? decision.weighted_total.toFixed(2) : "0.00"}
-                <span className="text-xs font-normal text-slate-400 font-sans ml-1">/ 100</span>
+              <span className="font-mono text-xs text-slate-500">
+                {applicant.applicant_id} · {applicant.full_name}
               </span>
             </div>
 
-            <button
-              onClick={handleExportJSON}
-              className="p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-sm flex items-center gap-1.5 text-xs font-semibold"
-              title="Download Defensible JSON Audit Record"
-            >
-              <Download className="w-4 h-4 text-indigo-400" />
-              <span className="hidden sm:inline">Export Audit JSON</span>
-            </button>
+            <h2 className="mt-3 text-xl font-bold tracking-tight text-slate-900">
+              {eligibility.is_eligible
+                ? `Weighted Score: ${decision.weighted_total.toFixed(2)} / 100`
+                : "Ineligible Under Section 1 Rules"}
+            </h2>
           </div>
+
+          <button
+            type="button"
+            onClick={handleExport}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-slate-300 hover:border-slate-400 bg-white text-xs font-semibold text-slate-800 transition-colors self-start cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export JSON</span>
+          </button>
         </div>
 
-        {/* Score Weights Breakdown summary if eligible */}
         {eligibility.is_eligible && (
-          <div className="mt-4 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/60">
-              <span className="text-slate-400 text-[10px] block">Merit Subtotal (55%)</span>
-              <span className="font-mono font-bold text-blue-300 text-sm">
-                {decision.merit_subtotal} pts
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                +{(decision.merit_subtotal * 0.55).toFixed(2)} wt
-              </span>
+          <div className="mt-6 grid grid-cols-3 divide-x divide-slate-200 border border-slate-200 rounded-md bg-slate-50/50">
+            <div className="p-3.5">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                Merit (55%)
+              </div>
+              <div className="mt-1 font-mono text-base font-bold text-slate-900">
+                {decision.merit_subtotal}{" "}
+                <span className="text-xs font-normal text-slate-500">
+                  ({(decision.merit_subtotal * 0.55).toFixed(2)} pts)
+                </span>
+              </div>
             </div>
 
-            <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/60">
-              <span className="text-slate-400 text-[10px] block">Need Subtotal (45%)</span>
-              <span className="font-mono font-bold text-emerald-300 text-sm">
-                {decision.need_subtotal} pts
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                +{(decision.need_subtotal * 0.45).toFixed(2)} wt
-              </span>
+            <div className="p-3.5">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                Need (45%)
+              </div>
+              <div className="mt-1 font-mono text-base font-bold text-slate-900">
+                {decision.need_subtotal}{" "}
+                <span className="text-xs font-normal text-slate-500">
+                  ({(decision.need_subtotal * 0.45).toFixed(2)} pts)
+                </span>
+              </div>
             </div>
 
-            <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/60">
-              <span className="text-slate-400 text-[10px] block">Formula Reference</span>
-              <span className="font-mono text-[11px] text-slate-300 block font-semibold truncate">
-                [RUBRIC-L40]
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                M×0.55 + N×0.45
-              </span>
-            </div>
-
-            <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/60">
-              <span className="text-slate-400 text-[10px] block">Pipeline Latency</span>
-              <span className="font-mono text-[11px] text-indigo-300 block font-semibold">
+            <div className="p-3.5">
+              <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                Elapsed
+              </div>
+              <div className="mt-1 font-mono text-base font-bold text-slate-900">
                 {(total_duration_ms / 1000).toFixed(2)}s
-              </span>
-              <span className="text-[10px] text-slate-500 block">
-                Concurrent Fan-Out
-              </span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Executive Synthesis */}
-        <div className="mt-4 p-3 rounded-lg bg-slate-950/90 border border-slate-800 text-xs">
-          <div className="flex items-center gap-1.5 text-indigo-400 font-semibold mb-1 text-[11px] uppercase tracking-wider">
-            <FileCheck className="w-3.5 h-3.5" />
-            Executive Committee Synthesis
+        <div className="mt-6 pt-5 border-t border-slate-100">
+          <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400 mb-1.5">
+            Committee Summary
           </div>
-          <p className="text-slate-300 leading-relaxed text-xs">
+          <p className="text-sm text-slate-700 leading-relaxed">
             {decision.executive_synthesis}
           </p>
         </div>
       </div>
 
-      {/* Gatekeeper Section 1 Eligibility Checks */}
-      <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/50">
+      <div className="border-b border-slate-200">
         <button
-          onClick={() => setShowGatekeeperDetails(!showGatekeeperDetails)}
-          className="w-full p-3.5 bg-slate-950 flex items-center justify-between text-left hover:bg-slate-900/80 transition-colors"
+          type="button"
+          onClick={() => setShowEligibility(!showEligibility)}
+          className="w-full px-6 py-3.5 bg-slate-50/70 hover:bg-slate-50 flex items-center justify-between text-left transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
-              Gatekeeper Section 1 Eligibility Checks
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              Eligibility Screening
             </span>
             <span
-              className={`text-[10px] px-2 py-0.5 rounded-full font-bold font-mono ${
-                eligibility.is_eligible
-                  ? "bg-emerald-950 text-emerald-300 border border-emerald-700"
-                  : "bg-rose-950 text-rose-300 border border-rose-700"
+              className={`font-mono text-[11px] font-semibold ${
+                eligibility.is_eligible ? "text-emerald-700" : "text-rose-700"
               }`}
             >
-              {eligibility.is_eligible ? "ALL RULES PASSED" : "DISQUALIFIED"}
+              {eligibility.is_eligible ? "Passed" : "Failed"}
             </span>
           </div>
-          {showGatekeeperDetails ? (
+          {showEligibility ? (
             <ChevronUp className="w-4 h-4 text-slate-400" />
           ) : (
             <ChevronDown className="w-4 h-4 text-slate-400" />
           )}
         </button>
 
-        {showGatekeeperDetails && (
-          <div className="p-3.5 border-t border-slate-800 space-y-2">
+        {showEligibility && (
+          <div className="divide-y divide-slate-100 px-6">
             {eligibility.checks.map((chk, i) => (
               <div
                 key={i}
-                className={`p-2.5 rounded-lg border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
-                  chk.passed
-                    ? "bg-slate-900/60 border-slate-800/80"
-                    : "bg-rose-950/30 border-rose-700/80"
-                }`}
+                className="py-3.5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 text-xs"
               >
-                <div className="flex items-start gap-2.5">
-                  {chk.passed ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  )}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-white">{chk.criterion_name}</span>
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-indigo-300 border border-slate-700">
-                        {chk.rubric_line_id}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5 italic">
-                      "{chk.verbatim_rubric_text}"
-                    </p>
-                    <p className="text-[11px] text-slate-300 mt-1">
-                      <strong className="text-slate-400">Finding:</strong> {chk.notes}
-                    </p>
+                <div className="space-y-1 max-w-xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-900">
+                      {chk.criterion_name}
+                    </span>
+                    <span className="font-mono text-[11px] text-indigo-700">
+                      {chk.rubric_line_id}
+                    </span>
+                    <span
+                      className={`font-mono text-[10px] font-semibold uppercase ${
+                        chk.passed ? "text-emerald-700" : "text-rose-700"
+                      }`}
+                    >
+                      {chk.passed ? "Pass" : "Fail"}
+                    </span>
                   </div>
+                  <p className="text-slate-600 leading-relaxed">{chk.notes}</p>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <span className="text-[10px] text-slate-500 block">Applicant Value</span>
-                  <span className="font-mono font-semibold text-slate-200 text-xs">
-                    {chk.applicant_value}
-                  </span>
+                <div className="font-mono text-xs text-slate-700 shrink-0">
+                  {chk.applicant_value}
                 </div>
               </div>
             ))}
@@ -245,98 +173,75 @@ export function DecisionScorecard({ evaluation }: DecisionScorecardProps) {
         )}
       </div>
 
-      {/* Per-Criterion Breakdown Table (if eligible) */}
       {eligibility.is_eligible && breakdown.length > 0 && (
-        <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/40">
-          <div className="p-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Award className="w-4 h-4 text-indigo-400" />
-              Scored Rubric Criteria & Auditable Citations
-            </h3>
-            <span className="text-[11px] text-slate-400">
-              5 Distinct Sub-Criteria Scored
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-900/80 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="py-2.5 px-3">Criterion & Section</th>
-                  <th className="py-2.5 px-3 text-center">Raw Score</th>
-                  <th className="py-2.5 px-3 text-center">Weight</th>
-                  <th className="py-2.5 px-3 text-center">Contribution</th>
-                  <th className="py-2.5 px-3">Rubric Citation</th>
-                  <th className="py-2.5 px-3">Agent Justification</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 font-sans">
-                {breakdown.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="py-3 px-3">
-                      <span className="font-semibold text-white block">{item.criterion_name}</span>
-                      <span className="text-[10px] text-indigo-400 font-medium uppercase tracking-wide">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/70 font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                <th className="py-3 px-6">Criterion</th>
+                <th className="py-3 px-4 text-right">Raw</th>
+                <th className="py-3 px-4 text-right">Weight</th>
+                <th className="py-3 px-4 text-right">Weighted</th>
+                <th className="py-3 px-4">Citation</th>
+                <th className="py-3 px-6">Rationale</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {breakdown.map((item, idx) => {
+                const key = `${item.citation_line_id}-${idx}`;
+                const open = expandedRule === key;
+                return (
+                  <tr key={key} className="align-top hover:bg-slate-50/50">
+                    <td className="py-3.5 px-6">
+                      <div className="font-semibold text-slate-900">
+                        {item.criterion_name}
+                      </div>
+                      <div className="font-mono text-[10px] uppercase tracking-wider text-slate-400 mt-0.5">
                         {item.section}
-                      </span>
+                      </div>
                     </td>
-                    <td className="py-3 px-3 text-center font-mono font-bold text-slate-200">
-                      {item.raw_score} <span className="text-slate-500 font-normal">/ {item.max_score}</span>
+                    <td className="py-3.5 px-4 text-right font-mono text-slate-700 whitespace-nowrap">
+                      {item.raw_score}/{item.max_score}
                     </td>
-                    <td className="py-3 px-3 text-center font-mono text-slate-400">
+                    <td className="py-3.5 px-4 text-right font-mono text-slate-500 whitespace-nowrap">
                       {item.weight_percentage}%
                     </td>
-                    <td className="py-3 px-3 text-center font-mono font-bold text-indigo-300">
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-900 whitespace-nowrap">
                       +{item.weighted_points.toFixed(2)}
                     </td>
-                    <td className="py-3 px-3">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <button
-                        onClick={() =>
-                          setSelectedCitation(
-                            selectedCitation === item.citation_line_id ? null : item.citation_line_id
-                          )
-                        }
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-950 text-indigo-300 border border-indigo-700 hover:bg-indigo-900 transition-colors cursor-pointer"
+                        type="button"
+                        onClick={() => setExpandedRule(open ? null : key)}
+                        className="font-mono text-[11px] font-semibold text-indigo-700 hover:underline cursor-pointer"
                       >
                         {item.citation_line_id}
-                        <ExternalLink className="w-2.5 h-2.5" />
                       </button>
-                      {selectedCitation === item.citation_line_id && (
-                        <div className="mt-1 p-2 bg-slate-950 border border-indigo-800/80 rounded text-[11px] text-slate-300 italic shadow-lg">
-                          "{item.verbatim_quote}"
-                        </div>
+                      {open && item.verbatim_quote && (
+                        <p className="mt-1.5 max-w-xs text-[11px] text-slate-600 italic bg-slate-50 border border-slate-200 rounded p-2 whitespace-normal">
+                          &ldquo;{item.verbatim_quote}&rdquo;
+                        </p>
                       )}
                     </td>
-                    <td className="py-3 px-3 text-[11px] text-slate-300 max-w-xs leading-relaxed">
+                    <td className="py-3.5 px-6 text-slate-600 leading-relaxed max-w-md">
                       {item.justification}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Cited Rubric Line IDs Summary Footer */}
-      <div className="p-3 bg-slate-950 rounded-lg border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <Info className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="text-slate-400 text-[11px]">Audit Line Registry:</span>
-          <div className="flex flex-wrap gap-1">
-            {decision.cited_rubric_lines.map((lineId) => (
-              <span
-                key={lineId}
-                className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700"
-              >
-                {lineId}
-              </span>
-            ))}
+      {decision.cited_rubric_lines?.length > 0 && (
+        <div className="px-6 py-3 bg-slate-50/70 border-t border-slate-200 flex items-center justify-between gap-4 text-[11px] text-slate-500">
+          <div className="font-mono truncate">
+            Referenced: {decision.cited_rubric_lines.join(", ")}
           </div>
+          <span className="shrink-0">Rubric-grounded output</span>
         </div>
-        <span className="text-[10px] text-slate-500">
-          Generated via Microsoft Agent Framework & Azure OpenAI
-        </span>
-      </div>
-    </div>
+      )}
+    </section>
   );
 }

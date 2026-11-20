@@ -6,25 +6,17 @@ import { useSearchParams } from "next/navigation";
 import { ApplicationForm } from "../../components/ApplicationForm";
 import { WorkflowVisualizer } from "../../components/WorkflowVisualizer";
 import { DecisionScorecard } from "../../components/DecisionScorecard";
-import { 
-  SampleApplication, 
-  EvaluationResponse, 
-  AgentTraceItem, 
-  StreamEvent, 
-  fetchHealth, 
-  fetchSamples, 
-  evaluateApplication, 
-  evaluateApplicationStream 
+import {
+  SampleApplication,
+  EvaluationResponse,
+  AgentTraceItem,
+  StreamEvent,
+  fetchHealth,
+  fetchSamples,
+  evaluateApplication,
+  evaluateApplicationStream,
 } from "../../lib/api";
-import { 
-  GraduationCap, 
-  ArrowLeft, 
-  RotateCcw,
-  Layers,
-  Cpu,
-  BookOpenCheck,
-  AlertCircle
-} from "lucide-react";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 
 function EvaluatorContent() {
   const searchParams = useSearchParams();
@@ -40,31 +32,34 @@ function EvaluatorContent() {
   const [error, setError] = useState<string | null>(null);
   const [healthStatus, setHealthStatus] = useState<{
     status: string;
-    openai_endpoint?: string;
     model_deployment?: string;
-    api_key_configured?: boolean;
     rubric_lines_loaded: number;
   } | null>(null);
 
   useEffect(() => {
     fetchHealth()
       .then(setHealthStatus)
-      .catch((err) => console.warn("Backend not yet ready:", err));
+      .catch(() => {});
 
     fetchSamples()
       .then((data) => {
         setSamples(data);
         if (sampleParam) {
-          const match = data.find((s) => s.applicant_id.toLowerCase() === sampleParam.toLowerCase());
+          const match = data.find(
+            (s) => s.applicant_id.toLowerCase() === sampleParam.toLowerCase()
+          );
           if (match) {
             handleEvaluate(match.raw_submission_text, match.metadata);
           }
         }
       })
-      .catch((err) => console.warn("Failed to load samples:", err));
+      .catch(() => {});
   }, [sampleParam]);
 
-  const handleEvaluate = async (submissionText: string, metadata?: Record<string, any>) => {
+  const handleEvaluate = async (
+    submissionText: string,
+    metadata?: Record<string, any>
+  ) => {
     setIsRunning(true);
     setError(null);
     setEvaluation(null);
@@ -85,8 +80,8 @@ function EvaluatorContent() {
           }
 
           setTraces((prev) => {
-            const existingIndex = prev.findIndex((t) => t.agent_name === event.agent);
-            const traceItem: AgentTraceItem = {
+            const idx = prev.findIndex((t) => t.agent_name === event.agent);
+            const item: AgentTraceItem = {
               stage: event.stage,
               agent_name: event.agent,
               status: event.status,
@@ -95,13 +90,12 @@ function EvaluatorContent() {
               detail: event.message,
             };
 
-            if (existingIndex >= 0) {
-              const updated = [...prev];
-              updated[existingIndex] = traceItem;
-              return updated;
-            } else {
-              return [...prev, traceItem];
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = item;
+              return next;
             }
+            return [...prev, item];
           });
         },
         (finalResponse: EvaluationResponse) => {
@@ -111,15 +105,14 @@ function EvaluatorContent() {
           setActiveStage(null);
           setIsRunning(false);
         },
-        async (streamErr) => {
-          console.warn("SSE stream failed, falling back to REST evaluate endpoint:", streamErr);
+        async () => {
           try {
             const res = await evaluateApplication(submissionText, metadata);
             setEvaluation(res);
             setTraces(res.traces);
             setIsEligible(res.eligibility.is_eligible);
           } catch (restErr: any) {
-            setError(restErr.message || "Evaluation request failed");
+            setError(restErr.message || "Evaluation request failed.");
           } finally {
             setActiveStage(null);
             setIsRunning(false);
@@ -128,17 +121,9 @@ function EvaluatorContent() {
         metadata
       );
     } catch (err: any) {
-      try {
-        const res = await evaluateApplication(submissionText, metadata);
-        setEvaluation(res);
-        setTraces(res.traces);
-        setIsEligible(res.eligibility.is_eligible);
-      } catch (restErr: any) {
-        setError(restErr.message || "Failed to complete multi-agent evaluation");
-      } finally {
-        setActiveStage(null);
-        setIsRunning(false);
-      }
+      setError(err?.message || "Failed to start evaluation.");
+      setActiveStage(null);
+      setIsRunning(false);
     }
   };
 
@@ -152,109 +137,58 @@ function EvaluatorContent() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+    <div className="bg-[#FBFBF9] min-h-[calc(100vh-4rem)] text-slate-900">
+      <div className="border-b border-stone-200 bg-[#FBFBF9]">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex flex-wrap items-baseline justify-between gap-4">
+          <div className="flex items-baseline gap-4">
             <Link
               href="/"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-stone-900 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Landing Page</span>
+              <span>Overview</span>
             </Link>
-
-            <div className="h-5 w-[1px] bg-slate-800 hidden sm:block"></div>
-
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-sm">
-                <GraduationCap className="w-4 h-4" />
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                  ScholarPanel Evaluator Workspace
-                  <span className="text-[10px] px-2 py-0.2 rounded-full font-mono font-semibold bg-indigo-950 text-indigo-300 border border-indigo-700">
-                    Live Panel
-                  </span>
-                </h1>
-              </div>
-            </div>
+            <span className="text-stone-300">/</span>
+            <h1 className="text-xl font-bold tracking-tight text-stone-900">
+              Committee Review Desk
+            </h1>
           </div>
 
-          {/* Right Status Badges */}
-          <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-              <span className="text-slate-400 text-[11px]">Rubric:</span>
-              <span className="font-mono font-semibold text-slate-200 text-[11px]">
-                {healthStatus?.rubric_lines_loaded || 44} lines indexed
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <Cpu className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="text-slate-400 text-[11px]">Model:</span>
-              <span className="font-mono font-semibold text-slate-200 text-[11px]">
-                {healthStatus?.model_deployment || "gpt-5-mini"}
-              </span>
-            </div>
-
+          <div className="flex items-center gap-4 font-mono text-[11px] text-stone-500">
+            <span>{healthStatus?.rubric_lines_loaded || 44} RUBRIC LINES</span>
+            <span className="text-stone-300">·</span>
+            <span>{healthStatus?.model_deployment || "gpt-5-mini"}</span>
             {evaluation && (
               <button
+                type="button"
                 onClick={handleReset}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs transition-colors cursor-pointer"
-                title="Reset evaluation view"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 font-sans text-xs font-medium cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
               </button>
             )}
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full flex flex-col">
-        {/* Error Alert */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {error && (
-          <div className="mb-5 p-4 rounded-xl bg-rose-950/60 border border-rose-700/80 text-rose-200 flex items-start gap-3 text-xs">
-            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <span className="font-bold block text-sm">Evaluation Error</span>
-              <p className="mt-0.5 text-rose-300">{error}</p>
-            </div>
+          <div className="mb-6 py-3 px-4 border-l-2 border-rose-600 bg-rose-50/70 text-xs text-rose-900">
+            <span className="font-semibold">Evaluation error:</span> {error}
           </div>
         )}
 
-        {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
-          {/* Left Column: Application Form & Rubric (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+          <aside className="lg:col-span-4 lg:sticky lg:top-20">
             <ApplicationForm
               samples={samples}
               onEvaluate={handleEvaluate}
               isRunning={isRunning}
             />
+          </aside>
 
-            {/* Workflow Architecture Card */}
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-2">
-              <div className="flex items-center gap-2 text-indigo-400 font-semibold uppercase tracking-wider text-[11px]">
-                <Layers className="w-4 h-4" />
-                Multi-Agent Workflow Topology
-              </div>
-              <ul className="space-y-1.5 text-slate-400 text-[11px] list-disc list-inside">
-                <li><strong className="text-slate-200">Stage 1 (Intake):</strong> Pydantic parsing into normalized schema.</li>
-                <li><strong className="text-slate-200">Stage 2 (Gatekeeper):</strong> RAG eligibility verification against Section 1. Short-circuits on fail.</li>
-                <li><strong className="text-slate-200">Stage 3 (Fan-Out):</strong> Concurrent evaluation by MeritAgent (55%) & NeedAgent (45%).</li>
-                <li><strong className="text-slate-200">Stage 4 (Fan-In):</strong> PanelManager deterministically aggregates weighted score.</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Right Column: Workflow Visualizer & Scorecard (7 cols) */}
-          <div className="lg:col-span-7 flex flex-col space-y-5">
-            {/* Live Pipeline Visualizer */}
+          <div className="lg:col-span-8 space-y-6">
             <WorkflowVisualizer
               traces={traces}
               events={events}
@@ -263,39 +197,37 @@ function EvaluatorContent() {
               isEligible={isEligible}
             />
 
-            {/* Decision Scorecard */}
             {evaluation ? (
               <DecisionScorecard evaluation={evaluation} />
             ) : (
-              <div className="p-8 rounded-xl border border-dashed border-slate-800 bg-slate-900/40 text-center flex flex-col items-center justify-center space-y-3">
-                <div className="p-3 rounded-full bg-slate-950 border border-slate-800 text-slate-500">
-                  <BookOpenCheck className="w-8 h-8 text-indigo-400/60" />
-                </div>
-                <div className="max-w-md">
-                  <h3 className="text-sm font-semibold text-slate-300">
-                    Awaiting Evaluation Run
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Select a preset applicant on the left or customize applicant details, then click <strong className="text-indigo-400">Evaluate with Multi-Agent Panel</strong> to watch the live fan-out/fan-in process.
-                  </p>
-                </div>
+              <div className="border-t border-b border-stone-200 py-14 px-6 text-left">
+                <p className="font-mono text-[11px] uppercase tracking-widest text-stone-400">
+                  Dossier Output
+                </p>
+                <h2 className="mt-2 text-lg font-bold tracking-tight text-stone-900">
+                  Ready for committee evaluation
+                </h2>
+                <p className="mt-1.5 text-sm text-stone-600 max-w-lg leading-relaxed">
+                  Select an applicant dossier in the left column and run the review. The decision sheet will display eligibility checks, weighted merit and need subtotals, and rubric line citations.
+                </p>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-[11px] text-slate-600">
-        ScholarPanel AI • Built with FastAPI, Next.js App Router, OpenAI Responses API & Azure AI Services
-      </footer>
-    </main>
+    </div>
   );
 }
 
 export default function EvaluatorPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-xs">Loading Evaluator Workspace...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-[60vh] flex items-center justify-center text-xs font-mono text-stone-400">
+          Loading review desk...
+        </div>
+      }
+    >
       <EvaluatorContent />
     </Suspense>
   );
