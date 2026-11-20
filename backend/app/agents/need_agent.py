@@ -1,7 +1,7 @@
 import json
 from app.schemas import StructuredApplication, NeedResult, NeedCriterionScore, RubricCitation
 from app.rag.rubric_tools import search_rubric, get_rubric_line, RUBRIC_SEARCH_TOOL_DEFINITION
-from app.agents.foundry_client import run_foundry_agent_completion
+from app.agents.openai_responses_client import run_agent_with_responses_api
 
 NEED_SYSTEM_PROMPT = """You are the Financial Need & Socioeconomic Evaluator for the Scholarship Committee.
 Your role is to rigorously evaluate an applicant against Section 3 (Total 100 points, 45% weight):
@@ -35,8 +35,13 @@ def _deterministic_evaluate_need(app: StructuredApplication) -> NeedResult:
         line_31 = "RUBRIC-L29"
         quote_31 = get_rubric_line("RUBRIC-L29")["text"]
         just_31 = f"High economic need: annual income of ${inc:,.2f} with {dep} dependents resulting in significant tuition burden (Band B)."
-    elif inc <= 70000.0:
-        score_31 = 28
+    elif inc <= 65000.0:
+        score_31 = 34
+        line_31 = "RUBRIC-L30"
+        quote_31 = get_rubric_line("RUBRIC-L30")["text"]
+        just_31 = f"Moderate economic need: annual income of ${inc:,.2f} with {dep} dependent obligations qualifying for Band C (20-35 pts)."
+    elif inc <= 75000.0:
+        score_31 = 26
         line_31 = "RUBRIC-L30"
         quote_31 = get_rubric_line("RUBRIC-L30")["text"]
         just_31 = f"Moderate economic need: annual income of ${inc:,.2f} with manageable dependency obligations (Band C)."
@@ -54,13 +59,14 @@ def _deterministic_evaluate_need(app: StructuredApplication) -> NeedResult:
     )
 
     # 3.2 Special Circumstances, First-Gen, Unmet Tuition Gap
+    fin_circ = (app.financial_circumstances or "").lower()
     if app.first_gen or score_31 >= 50:
         score_32 = 36
         line_32 = "RUBRIC-L33"
         quote_32 = get_rubric_line("RUBRIC-L33")["text"]
         just_32 = "Documented first-generation college student status compounded by emergency tuition deficit exceeding $15,000 (Band A)."
-    elif score_31 >= 40:
-        score_32 = 26
+    elif score_31 >= 30 or any(k in fin_circ for k in ["gap", "tuition", "unmet"]):
+        score_32 = 25
         line_32 = "RUBRIC-L34"
         quote_32 = get_rubric_line("RUBRIC-L34")["text"]
         just_32 = "Substantial tuition shortfall requiring significant student work-study and self-financing (Band B)."
@@ -91,14 +97,14 @@ def _deterministic_evaluate_need(app: StructuredApplication) -> NeedResult:
     )
 
 async def run_need_agent(app: StructuredApplication) -> NeedResult:
-    """Executes the Need Specialist agent."""
+    """Executes the Need Specialist agent using OpenAI Responses API."""
     user_prompt = f"""Score this applicant under Section 3 Financial Need Criteria:
 {app.model_dump_json(indent=2)}
 """
 
-    cloud_result = await run_foundry_agent_completion(
-        system_prompt=NEED_SYSTEM_PROMPT,
-        user_prompt=user_prompt,
+    cloud_result = await run_agent_with_responses_api(
+        instructions=NEED_SYSTEM_PROMPT,
+        input_text=user_prompt,
         tools=[RUBRIC_SEARCH_TOOL_DEFINITION],
         tool_executor=_tool_executor
     )

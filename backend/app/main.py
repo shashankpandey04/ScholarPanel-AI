@@ -30,15 +30,16 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """Verifies service readiness and environment settings."""
-    has_foundry = bool(settings.FOUNDRY_PROJECT_ENDPOINT)
+    has_api_key = bool(settings.OPENAI_API_KEY and "<your-api-key>" not in settings.OPENAI_API_KEY)
     lines_count = len(rubric_store.lines)
 
     return {
         "status": "healthy",
         "app_name": settings.APP_NAME,
-        "foundry_configured": has_foundry,
-        "foundry_endpoint": settings.FOUNDRY_PROJECT_ENDPOINT or "Running in local simulation mode",
-        "model_deployment": settings.FOUNDRY_MODEL_DEPLOYMENT,
+        "openai_endpoint": settings.OPENAI_BASE_URL,
+        "model_deployment": settings.MODEL_DEPLOYMENT,
+        "api_key_configured": has_api_key,
+        "mode": "Live OpenAI Responses API" if has_api_key else "Local Deterministic Rubric Simulation Mode",
         "rubric_lines_loaded": lines_count
     }
 

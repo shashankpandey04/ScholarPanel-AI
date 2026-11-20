@@ -1,7 +1,7 @@
 import json
 from app.schemas import StructuredApplication, EligibilityResult, RuleCheck, RubricCitation
 from app.rag.rubric_tools import search_rubric, get_rubric_line, get_rubric_section, RUBRIC_SEARCH_TOOL_DEFINITION
-from app.agents.foundry_client import run_foundry_agent_completion
+from app.agents.openai_responses_client import run_agent_with_responses_api
 
 ELIGIBILITY_SYSTEM_PROMPT = """You are the Gatekeeper Eligibility Auditor for the Scholarship Selection Board.
 Your sole responsibility is to evaluate an applicant against the 5 official, non-negotiable Hard Eligibility Criteria from Section 1 of the published rubric:
@@ -131,14 +131,14 @@ def _deterministic_evaluate_eligibility(app: StructuredApplication) -> Eligibili
     )
 
 async def run_eligibility_agent(app: StructuredApplication) -> EligibilityResult:
-    """Executes the Eligibility Gatekeeper agent."""
+    """Executes the Eligibility Gatekeeper agent using OpenAI Responses API."""
     user_prompt = f"""Evaluate this structured applicant file against Section 1 Hard Eligibility Rules:
 {app.model_dump_json(indent=2)}
 """
 
-    cloud_result = await run_foundry_agent_completion(
-        system_prompt=ELIGIBILITY_SYSTEM_PROMPT,
-        user_prompt=user_prompt,
+    cloud_result = await run_agent_with_responses_api(
+        instructions=ELIGIBILITY_SYSTEM_PROMPT,
+        input_text=user_prompt,
         tools=[RUBRIC_SEARCH_TOOL_DEFINITION],
         tool_executor=_tool_executor
     )

@@ -2,7 +2,7 @@ import json
 import re
 from typing import Any
 from app.schemas import StructuredApplication
-from app.agents.foundry_client import run_foundry_agent_completion
+from app.agents.openai_responses_client import run_agent_with_responses_api
 
 INTAKE_SYSTEM_PROMPT = """You are the official Admissions Intake Specialist for the Global Excellence and Opportunity Scholarship Committee.
 Your role is to strictly normalize, extract, and validate raw, unstructured application text and dossier fragments into a formal, structured JSON schema.
@@ -100,11 +100,10 @@ def _deterministic_extract(raw_text: str, metadata: dict[str, Any] | None = None
     )
 
 async def run_intake_agent(raw_text: str, metadata: dict[str, Any] | None = None) -> StructuredApplication:
-    """Executes Intake Agent on raw applicant dossier."""
-    # Attempt Azure AI Foundry completion
-    cloud_result = await run_foundry_agent_completion(
-        system_prompt=INTAKE_SYSTEM_PROMPT,
-        user_prompt=f"Raw Applicant Submission:\n{raw_text}\n\nPre-filled Metadata:\n{json.dumps(metadata or {})}"
+    """Executes Intake Agent on raw applicant dossier using OpenAI Responses API."""
+    cloud_result = await run_agent_with_responses_api(
+        instructions=INTAKE_SYSTEM_PROMPT,
+        input_text=f"Raw Applicant Submission:\n{raw_text}\n\nPre-filled Metadata:\n{json.dumps(metadata or {})}"
     )
 
     if cloud_result:

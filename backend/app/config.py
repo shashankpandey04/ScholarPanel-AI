@@ -9,11 +9,24 @@ DATA_DIR = BASE_DIR / "data"
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 class Settings:
-    FOUNDRY_PROJECT_ENDPOINT: str = os.getenv("FOUNDRY_PROJECT_ENDPOINT", "").strip()
-    FOUNDRY_MODEL_DEPLOYMENT: str = os.getenv("FOUNDRY_MODEL_DEPLOYMENT", "gpt-4o").strip()
+    # OpenAI Responses API Client Configuration
+    OPENAI_BASE_URL: str = os.getenv(
+        "OPENAI_BASE_URL", 
+        os.getenv("AZURE_OPENAI_ENDPOINT", "https://cse476-resource.services.ai.azure.com/openai/v1")
+    ).strip()
+    
+    OPENAI_API_KEY: str = os.getenv(
+        "OPENAI_API_KEY", 
+        os.getenv("AZURE_OPENAI_API_KEY", "")
+    ).strip()
+    
+    MODEL_DEPLOYMENT: str = os.getenv(
+        "MODEL_DEPLOYMENT", 
+        os.getenv("FOUNDRY_MODEL_DEPLOYMENT", "gpt-5-mini")
+    ).strip()
 
     # Paths and server configs
-    APP_NAME: str = "ScholarPanel AI - Azure AI Foundry Multi-Agent Evaluator"
+    APP_NAME: str = "ScholarPanel AI - Multi-Agent Scholarship Evaluator"
     DEBUG: bool = True
     RUBRIC_PATH: str = str(DATA_DIR / "published_rubric.md")
     SAMPLES_PATH: str = str(DATA_DIR / "sample_applications.json")

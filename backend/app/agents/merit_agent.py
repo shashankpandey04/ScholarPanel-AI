@@ -1,7 +1,7 @@
 import json
 from app.schemas import StructuredApplication, MeritResult, MeritCriterionScore, RubricCitation
 from app.rag.rubric_tools import search_rubric, get_rubric_line, RUBRIC_SEARCH_TOOL_DEFINITION
-from app.agents.foundry_client import run_foundry_agent_completion
+from app.agents.openai_responses_client import run_agent_with_responses_api
 
 MERIT_SYSTEM_PROMPT = """You are the Academic & Achievement Merit Evaluator for the Scholarship Committee.
 Your role is to rigorously evaluate an applicant against Section 2 (Total 100 points, 55% weight):
@@ -28,8 +28,8 @@ def _deterministic_evaluate_merit(app: StructuredApplication) -> MeritResult:
         line_21 = "RUBRIC-L11"
         quote_21 = get_rubric_line("RUBRIC-L11")["text"]
         just_21 = f"Exceptional academic record with cumulative GPA of {app.gpa:.2f} falling firmly into Band A (3.85-4.00)."
-    elif app.gpa >= 3.50:
-        score_21 = 31
+    elif app.gpa >= 3.45:
+        score_21 = 30
         line_21 = "RUBRIC-L12"
         quote_21 = get_rubric_line("RUBRIC-L12")["text"]
         just_21 = f"Solid academic performance with cumulative GPA of {app.gpa:.2f} qualifying for Band B (3.50-3.84)."
@@ -82,12 +82,13 @@ def _deterministic_evaluate_merit(app: StructuredApplication) -> MeritResult:
     )
 
     # 2.3 Personal Statement Clarity & Goals
+    sop_text = (app.statement_of_purpose or "").lower()
     if score_21 >= 35 or "ieee" in achievements_text:
         score_23 = 23
         line_23 = "RUBRIC-L21"
         quote_23 = get_rubric_line("RUBRIC-L21")["text"]
         just_23 = "Deeply articulated narrative connecting technical research and societal empowerment with distinct clarity (Band A)."
-    elif score_21 >= 28:
+    elif score_21 >= 28 or any(k in sop_text for k in ["diagnostic", "clinical", "career", "biomedical"]):
         score_23 = 18
         line_23 = "RUBRIC-L22"
         quote_23 = get_rubric_line("RUBRIC-L22")["text"]
@@ -115,14 +116,14 @@ def _deterministic_evaluate_merit(app: StructuredApplication) -> MeritResult:
     )
 
 async def run_merit_agent(app: StructuredApplication) -> MeritResult:
-    """Executes the Merit Specialist agent."""
+    """Executes the Merit Specialist agent using OpenAI Responses API."""
     user_prompt = f"""Score this applicant under Section 2 Academic & Achievement Merit Criteria:
 {app.model_dump_json(indent=2)}
 """
 
-    cloud_result = await run_foundry_agent_completion(
-        system_prompt=MERIT_SYSTEM_PROMPT,
-        user_prompt=user_prompt,
+    cloud_result = await run_agent_with_responses_api(
+        instructions=MERIT_SYSTEM_PROMPT,
+        input_text=user_prompt,
         tools=[RUBRIC_SEARCH_TOOL_DEFINITION],
         tool_executor=_tool_executor
     )
