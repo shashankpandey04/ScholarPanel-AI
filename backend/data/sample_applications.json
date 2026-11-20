@@ -1,0 +1,47 @@
+[
+  {
+    "applicant_id": "APP-2026-001",
+    "full_name": "Aarav Sharma",
+    "email": "aarav.sharma@example.edu",
+    "raw_submission_text": "Applicant Profile: Aarav Sharma, senior undergraduate in Computer Science at State Engineering University. Maintaining a cumulative GPA of 3.92 out of 4.00, enrolled full-time (16 credits). Citizen of the host nation. Co-authored an IEEE conference publication on edge AI optimization for low-resource devices and founded the rural code literacy initiative mentoring 200+ underprivileged high school students. Family annual income is $28,000 (INR 3,50,000 equivalent) supporting an elderly grandparent and 3 younger siblings (total household dependents: 5). First-generation college student. Facing an unmet tuition deficit of $18,500 due to sudden family medical emergencies.",
+    "expected_category": "AWARD",
+    "metadata": {
+      "target_gpa": 3.92,
+      "enrollment_status": "Full-Time",
+      "residency_status": "Citizen / Permanent Resident",
+      "annual_income": 28000,
+      "dependents": 5,
+      "first_gen": true
+    }
+  },
+  {
+    "applicant_id": "APP-2026-002",
+    "full_name": "Priya Nair",
+    "email": "priya.nair@example.edu",
+    "raw_submission_text": "Applicant Profile: Priya Nair, junior pursuing Biomedical Sciences. Cumulative GPA is 3.48 across 6 semesters of accredited full-time study (15 credits). Documented permanent resident. Active member of the University Bioethics Society and contributed as a junior student researcher in a biochemistry lab for two semesters. Personal statement outlines career trajectory towards clinical diagnostics in underserved regions. Verified household annual income is $62,000 (INR 8,20,000 equivalent) with 2 family dependents. Moderate unmet tuition gap of $7,200 with standard parental financial support.",
+    "expected_category": "WAITLIST",
+    "metadata": {
+      "target_gpa": 3.48,
+      "enrollment_status": "Full-Time",
+      "residency_status": "Citizen / Permanent Resident",
+      "annual_income": 62000,
+      "dependents": 2,
+      "first_gen": false
+    }
+  },
+  {
+    "applicant_id": "APP-2026-003",
+    "full_name": "Rohan Verma",
+    "email": "rohan.verma@example.edu",
+    "raw_submission_text": "Applicant Profile: Rohan Verma, sophomore studying Mechanical Engineering. Currently holds a cumulative GPA of 2.78 out of 4.00, enrolled full-time (14 credits). Documented citizen. Passionate about robotics club workshops and 3D printing prototyping projects. Family annual income is $35,000 with 3 dependents. Demonstrates significant financial need, but academic transcript indicates academic probation during freshman year with GPA failing the minimum standard required by the scholarship board.",
+    "expected_category": "REJECT",
+    "metadata": {
+      "target_gpa": 2.78,
+      "enrollment_status": "Full-Time",
+      "residency_status": "Citizen / Permanent Resident",
+      "annual_income": 35000,
+      "dependents": 3,
+      "first_gen": false
+    }
+  }
+]
